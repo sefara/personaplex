@@ -3,7 +3,7 @@ name: build-personaplex-blackwell
 on:
   push:
     branches:
-      - dgx-spark-blackwell
+      - dgx-spark
   workflow_dispatch:
 
 permissions:
