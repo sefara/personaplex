@@ -1,0 +1,23 @@
+ARG BASE_IMAGE=nvcr.io/nvidia/cuda
+ARG BASE_IMAGE_TAG=13.0.1-runtime-ubuntu24.04
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG}
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    pkg-config \
+    libopus-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY . /app
+
+RUN uv venv /app/.venv --python 3.12
+RUN /app/.venv/bin/pip install -U pip
+RUN /app/.venv/bin/pip install /app/moshi/.
+RUN /app/.venv/bin/pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+
+RUN mkdir -p /app/ssl
+EXPOSE 8998
+CMD ["/app/.venv/bin/python", "-m", "moshi.server", "--ssl", "/app/ssl"]
