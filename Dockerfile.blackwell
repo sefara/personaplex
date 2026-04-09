@@ -10,14 +10,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libopus-dev \
  && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-COPY . /app
+WORKDIR /app/moshi
+COPY moshi/ /app/moshi/
 
-RUN uv venv /app/.venv --python 3.12
-RUN /app/.venv/bin/pip install -U pip
-RUN /app/.venv/bin/pip install /app/moshi/.
-RUN /app/.venv/bin/pip install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+RUN uv venv /app/moshi/.venv --python 3.12
+RUN uv sync
+
+# Blackwell torch
+RUN uv pip install --python /app/moshi/.venv/bin/python --upgrade \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
 
 RUN mkdir -p /app/ssl
 EXPOSE 8998
-CMD ["/app/.venv/bin/python", "-m", "moshi.server", "--ssl", "/app/ssl"]
+ENTRYPOINT []
+CMD ["/app/moshi/.venv/bin/python", "-m", "moshi.server", "--ssl", "/app/ssl"]
