@@ -21,6 +21,9 @@ RUN uv pip install --python /app/moshi/.venv/bin/python --upgrade \
     torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
 
 RUN mkdir -p /app/ssl
+
+ENV PATH="/app/moshi/.venv/bin:${PATH}"
+
 EXPOSE 8998
 ENTRYPOINT []
 CMD ["/app/moshi/.venv/bin/python", "-m", "moshi.server", "--ssl", "/app/ssl"]
