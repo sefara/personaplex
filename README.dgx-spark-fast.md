@@ -17,7 +17,7 @@ Model weights and `HF_TOKEN` are never needed during build. The first server sta
 
 ## Build and pull
 
-Pushing `dgx-spark-fast` runs `.github/workflows/build-blackwell-fast.yml` and publishes only:
+Pushing `dgx-spark-fast` runs `.github/workflows/build-blackwell-fast.yml` on a native GitHub ARM64 runner and publishes only:
 
 ```text
 ghcr.io/sefara/personaplex-nvidia-dgx-spark:sha-<full-commit-SHA>
