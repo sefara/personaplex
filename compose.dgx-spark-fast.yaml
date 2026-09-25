@@ -1,0 +1,32 @@
+name: personaplex-dgx-spark-fast
+
+services:
+  personaplex-fast:
+    image: ${PERSONAPLEX_FAST_IMAGE:-ghcr.io/sefara/personaplex-nvidia-dgx-spark:fast-candidate}
+    platform: linux/arm64
+    restart: unless-stopped
+    ports:
+      - "${PERSONAPLEX_FAST_PORT:-8999}:8998"
+    environment:
+      HF_TOKEN: ${HF_TOKEN:?Set HF_TOKEN in Portainer stack variables}
+      HF_HOME: /data/huggingface
+      TRITON_CACHE_DIR: /data/triton
+      TORCHINDUCTOR_CACHE_DIR: /data/torchinductor
+    volumes:
+      - personaplex-fast-models:/data/huggingface
+      - personaplex-fast-ssl:/app/ssl
+      - personaplex-fast-triton:/data/triton
+      - personaplex-fast-inductor:/data/torchinductor
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  personaplex-fast-models:
+  personaplex-fast-ssl:
+  personaplex-fast-triton:
+  personaplex-fast-inductor:

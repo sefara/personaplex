@@ -1,0 +1,46 @@
+FROM nvidia/cuda:13.0.1-devel-ubuntu24.04@sha256:7d2f6a8c2071d911524f95061a0db363e24d27aa51ec831fcccf9e76eb72bc92
+
+ARG TARGETARCH
+RUN test "$TARGETARCH" = arm64
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    VIRTUAL_ENV=/app/venv \
+    PATH=/app/venv/bin:$PATH \
+    HF_HOME=/data/huggingface \
+    TRITON_CACHE_DIR=/data/triton \
+    TORCHINDUCTOR_CACHE_DIR=/data/torchinductor \
+    PYTHONDONTWRITEBYTECODE=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.12 python3.12-venv python3-pip ca-certificates curl openssl \
+    libopus-dev libportaudio2 build-essential pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY constraints.dgx-spark-fast.txt /app/constraints.txt
+COPY moshi/ /app/moshi/
+COPY README.md /app/moshi/README.md
+COPY scripts/dgx-spark-gpu-check.py /app/scripts/dgx-spark-gpu-check.py
+COPY scripts/dgx-spark-entrypoint.py /app/scripts/dgx-spark-entrypoint.py
+
+RUN python3.12 -m venv /app/venv \
+ && /app/venv/bin/python -m pip install --no-cache-dir pip==25.2 \
+ && curl -fsSL -o /tmp/sphn.whl 'https://github.com/jethac/personaplex-gb10/releases/download/v0.1.0/sphn-0.1.12-cp312-cp312-linux_aarch64.whl' \
+ && echo '8bc7127ee60485698f3cff1a58c3185c2fd4418916b1db60dc0e8ecbc5475144  /tmp/sphn.whl' | sha256sum -c - \
+ && mv /tmp/sphn.whl /tmp/sphn-0.1.12-cp312-cp312-linux_aarch64.whl \
+ && /app/venv/bin/pip install --no-cache-dir /tmp/sphn-0.1.12-cp312-cp312-linux_aarch64.whl \
+ && /app/venv/bin/pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu130 \
+      -c /app/constraints.txt triton==3.7.1 /app/moshi \
+ && /app/venv/bin/pip check \
+ && /app/venv/bin/python -c "import moshi, pathlib; assert pathlib.Path(moshi.__file__).resolve().is_relative_to('/app/venv'); print(moshi.__file__)" \
+ && /app/venv/bin/python -m moshi.server --help | grep -q -- --fast \
+ && rm -f /tmp/sphn-0.1.12-cp312-cp312-linux_aarch64.whl
+
+RUN mkdir -p /app/ssl /data/huggingface /data/triton /data/torchinductor \
+ && command -v ptxas
+
+EXPOSE 8998
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20m --retries=3 \
+  CMD python -c "import ssl,urllib.request; urllib.request.urlopen('https://127.0.0.1:8998/',context=ssl._create_unverified_context(),timeout=5)" || exit 1
+ENTRYPOINT ["python", "/app/scripts/dgx-spark-entrypoint.py"]
+CMD ["python", "-m", "moshi.server", "--host", "0.0.0.0", "--port", "8998", "--ssl", "/app/ssl", "--fast"]

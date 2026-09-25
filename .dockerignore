@@ -1,1 +1,12 @@
 .cache
+.env
+.env.*
+*.pem
+*.key
+*.pt
+*.safetensors
+*.ckpt
+**/__pycache__/
+**/.venv/
+**/venv/
+**/uv.lock

@@ -501,6 +501,8 @@ def main():
 
     args = parser.parse_args()
     if args.fast:
+        if os.environ.get("NO_TORCH_COMPILE"):
+            parser.error("--fast requires NO_TORCH_COMPILE to be unset")
         import importlib.util
         missing = []
         if not torch.cuda.is_available():
