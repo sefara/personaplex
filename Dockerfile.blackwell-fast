@@ -22,6 +22,7 @@ COPY moshi/ /app/moshi/
 COPY README.md /app/moshi/README.md
 COPY scripts/dgx-spark-gpu-check.py /app/scripts/dgx-spark-gpu-check.py
 COPY scripts/dgx-spark-entrypoint.py /app/scripts/dgx-spark-entrypoint.py
+COPY scripts/dgx-spark-deps-check.py /app/scripts/dgx-spark-deps-check.py
 
 RUN python3.12 -m venv /app/venv \
  && /app/venv/bin/python -m pip install --no-cache-dir pip==25.2 \
@@ -31,10 +32,11 @@ RUN python3.12 -m venv /app/venv \
  && /app/venv/bin/pip install --no-cache-dir /tmp/sphn-0.1.12-cp312-cp312-linux_aarch64.whl \
  && /app/venv/bin/pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu130 \
       -c /app/constraints.txt triton==3.7.1 /app/moshi \
- && /app/venv/bin/pip check \
- && /app/venv/bin/python -c "import moshi, pathlib; assert pathlib.Path(moshi.__file__).resolve().is_relative_to('/app/venv'); print(moshi.__file__)" \
- && /app/venv/bin/python -m moshi.server --help | grep -q -- --fast \
  && rm -f /tmp/sphn-0.1.12-cp312-cp312-linux_aarch64.whl
+
+RUN /app/venv/bin/python /app/scripts/dgx-spark-deps-check.py \
+ && /app/venv/bin/python -c "import moshi, pathlib; assert pathlib.Path(moshi.__file__).resolve().is_relative_to('/app/venv'); print(moshi.__file__)" \
+ && /app/venv/bin/python -m moshi.server --help | grep -q -- --fast
 
 RUN mkdir -p /app/ssl /data/huggingface /data/triton /data/torchinductor \
  && command -v ptxas
